@@ -21,6 +21,9 @@ func main() {
 		log.Fatal(err)
 	}
 
+	writeQueryOrKey := ""
+	getQueryOrKey := ""
+
 	ast.Inspect(node, func(n ast.Node) bool {
 		switch n := n.(type) {
 		case *ast.FuncDecl:
@@ -31,6 +34,7 @@ func main() {
 					if strings.Contains(callExpr, ".") {
 						putState := strings.Split(callExpr, ".")
 						if putState[1] == "GetHistoryForKey" || putState[1] == "GetQueryResult" {
+							getQueryOrKey = nodeString(x.Args[0])
 							ast.Inspect(n.Body, func(y ast.Node) bool {
 								switch y := y.(type) {
 								case *ast.CallExpr:
@@ -38,7 +42,8 @@ func main() {
 									if strings.Contains(callExpr, ".") {
 										putState := strings.Split(callExpr, ".")
 										if putState[1] == "PutState" {
-											if y.Pos() > x.Pos() {
+											writeQueryOrKey = nodeString(y.Args[0])
+											if y.Pos() > x.Pos() && writeQueryOrKey == getQueryOrKey {
 												fmt.Println("PHANTOM READ DETECTED IN FUNCTION: ")
 												fmt.Println(n.Name)
 											}

@@ -21,9 +21,14 @@ func main() {
 		log.Fatal(err)
 	}
 
+	writeKey := ""
+	readKey := ""
+
 	ast.Inspect(node, func(n ast.Node) bool {
 		switch n := n.(type) {
 		case *ast.FuncDecl:
+			writeKey = ""
+			readKey = ""
 			ast.Inspect(n.Body, func(x ast.Node) bool {
 				switch x := x.(type) {
 				case *ast.CallExpr:
@@ -31,6 +36,7 @@ func main() {
 					if strings.Contains(callExpr, ".") {
 						putState := strings.Split(callExpr, ".")
 						if putState[1] == "PutState" {
+							writeKey = nodeString(x.Args[0])
 							ast.Inspect(n.Body, func(y ast.Node) bool {
 								switch y := y.(type) {
 								case *ast.CallExpr:
@@ -38,7 +44,8 @@ func main() {
 									if strings.Contains(callExpr, ".") {
 										putState := strings.Split(callExpr, ".")
 										if putState[1] == "GetState" {
-											if y.Pos() > x.Pos() {
+											readKey = nodeString(y.Args[0])
+											if y.Pos() > x.Pos() && readKey == writeKey {
 												fmt.Println("READ AFTER WRITE DETECTED IN FUNCTION: ")
 												fmt.Println(n.Name)
 											}
